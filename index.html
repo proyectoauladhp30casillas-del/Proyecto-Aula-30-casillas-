@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tablero Digital Interactivo - Proyecto Aula</title>
+  <style>
+    :root {
+      --bg: #eef2ff;
+      --tablero-bg: #ffffff;
+      --p1: #38bdf8;
+      --p1-borde: #0284c7;
+      --p1-claro: #e0f2fe;
+      --p2: #f472b6;
+      --p2-borde: #db2777;
+      --p2-claro: #fce7f3;
+      --p3: #fbbf24;
+      --p3-borde: #d97706;
+      --p3-claro: #fef3c7;
+      --texto: #1e293b;
+      --ok: #16a34a;
+      --mal: #dc2626;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--texto); }
+
+    /* Encabezado */
+    header {
+      background: linear-gradient(90deg, #1e3a8a, #2563eb);
+      color: #fff;
+      padding: 1.2rem 1rem;
+      text-align: center;
+      border-bottom: 5px solid #facc15;
+    }
+    header h1 { margin: 0; font-size: 1.6rem; }
+    header p { margin: 0.25rem 0 0; font-size: 0.92rem; opacity: 0.92; }
+
+    .contenedor { max-width: 1120px; margin: 1.2rem auto; padding: 0 1rem; }
+
+    /* Panel superior de control */
+    .panel-control {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+      background: #fff;
+      padding: 0.9rem 1.2rem;
+      border-radius: 14px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+      margin-bottom: 1rem;
+    }
+
+    .grupo-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 0.95rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+    .btn-azul { background: #1d4ed8; color: #fff; }
+    .btn-amarillo { background: #facc15; color: #0f172a; }
+    .btn-verde { background: #16a34a; color: #fff; font-size: 0.95rem; }
+    .btn-gris { background: #e2e8f0; color: #1e293b; }
+
+    .marcadores { display: flex; flex-wrap: wrap; gap: 0.6rem; font-weight: 700; font-size: 0.9rem; }
+    .caja-dato {
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+    }
+
+    /* Marco del Tablero de Juego */
+    .marco-tablero {
+      background: var(--tablero-bg);
+      border: 4px solid #1e3a8a;
+      border-radius: 20px;
+      padding: 1.2rem;
+      box-shadow: 0 8px 20px rgba(30, 58, 138, 0.12);
+    }
+
+    .centro-titulo {
+      text-align: center;
+      background: #fef9c3;
+      border: 2px dashed #eab308;
+      border-radius: 14px;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .centro-titulo h2 { margin: 0; color: #1e3a8a; font-size: 1.25rem; }
+    .centro-titulo p { margin: 0.25rem 0 0; font-size: 0.88rem; color: #475569; }
+
+    .leyenda-parciales {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .etiqueta-p {
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      border: 2px solid;
+    }
+    .ep1 { background: var(--p1-claro); border-color: var(--p1-borde); }
+    .ep2 { background: var(--p2-claro); border-color: var(--p2-borde); }
+    .ep3 { background: var(--p3-claro); border-color: var(--p3-borde); }
+
+    /* Cuadrícula estilo juego de mesa */
+    .ruta-tablero {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .ficha-casilla {
+      position: relative;
+      border-radius: 14px;
+      padding: 0.75rem;
+      border: 3px solid;
+      min-height: 118px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease;
+    }
+    .ficha-casilla:hover { transform: scale(1.03); }
+
+    .ficha-casilla.p1 { background: var(--p1-claro); border-color: var(--p1-borde); }
+    .ficha-casilla.p2 { background: var(--p2-claro); border-color: var(--p2-borde); }
+    .ficha-casilla.p3 { background: var(--p3-claro); border-color: var(--p3-borde); }
+
+    .ficha-casilla.actual {
+      box-shadow: 0 0 0 4px #16a34a;
+    }
+
+    .peon {
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-size: 1.3rem;
+    }
+
+    .marca-ok {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: var(--ok);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .cabecera-ficha {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .sub-parcial { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.75; }
+    .nombre-tema { font-size: 0.82rem; font-weight: 700; margin-top: 0.3rem; line-height: 1.25; }
+
+    .casilla-extremo {
+      background: #1e3a8a;
+      color: #fff;
+      border-color: #0f172a;
+      cursor: default;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .casilla-extremo .nombre-tema { color: #facc15; font-size: 0.95rem; }
+
+    /* Ventanas emergentes */
+    .modal-fondo {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-fondo.activo { display: flex; }
+    .modal-caja {
+      background: #fff;
+      width: 100%;
+      max-width: 620px;
+      border-radius: 16px;
+      padding: 1.4rem;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 3px solid #1e3a8a;
+    }
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0.6rem;
+      margin-bottom: 0.9rem;
+    }
+    .modal-top h3 { margin: 0; font-size: 1.15rem; color: #1e3a8a; }
+
+    .nota-manual {
+      background: #f1f5f9;
+      border-left: 4px solid #2563eb;
+      padding: 0.7rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 0.9rem;
+    }
+    .texto-reto { font-weight: 700; font-size: 1rem; margin-bottom: 0.9rem; }
+
+    .lista-opciones { display: flex; flex-direction: column; gap: 0.55rem; }
+    .btn-opcion {
+      text-align: left;
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+      color: var(--texto);
+      padding: 0.7rem 0.9rem;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 0.92rem;
+    }
+    .btn-opcion:hover:not(:disabled) { border-color: #2563eb; background: #eff6ff; }
+    .btn-opcion.acierto { background: #dcfce7; border-color: var(--ok); color: #14532d; font-weight: 700; }
+    .btn-opcion.fallo { background: #fee2e2; border-color: var(--mal); color: #7f1d1d; }
+
+    .caja-retro {
+      display: none;
+      margin-top: 0.9rem;
+      padding: 0.85rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .caja-retro.mostrar { display: block; }
+    .caja-retro.bien { background: #dcfce7; border: 2px solid #86efac; color: #14532d; }
+    .caja-retro.mal { background: #fef2f2; border: 2px solid #fecaca; color: #7f1d1d; }
+
+    .pie-equipo {
+      margin-top: 1.2rem;
+      background: #fff;
+      padding: 0.9rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 0.85rem;
+      text-align: center;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎲 Tablero Digital Interactivo · Proyecto Aula</h1>
+  <p>Desarrollo de Habilidades del Pensamiento I · Primer Semestre · CECyT 13 "Ricardo Flores Magón" (IPN)</p>
+</header>
+
+<div class="contenedor">
+  <div class="panel-control">
+    <div class="grupo-botones">
+      <button class="btn-azul" onclick="verInfo('objetivo')">🎯 Objetivo</button>
+      <button class="btn-amarillo" onclick="verInfo('reglas')">📋 Reglas Simples</button>
+      <button class="btn-gris" onclick="verInfo('equipo')">👥 Equipo</button>
+      <button class="btn-verde" onclick="tirarDado()">🎲 Tirar Dado</button>
+      <button class="btn-gris" onclick="reiniciarJuego()">🔄 Reiniciar</button>
+    </div>
+    <div class="marcadores">
+      <div class="caja-dato">📍 Posición: <span id="lblPos">Inicio</span></div>
+      <div class="caja-dato">✅ Resueltas: <span id="lblHechas">0</span>/30</div>
+      <div class="caja-dato">⭐ Puntos: <span id="lblPuntos">0</span></div>
+    </div>
+  </div>
+
+  <div class="marco-tablero">
+    <div class="centro-titulo">
+      <h2>Problemática: Prevención de la Presión Social en la Adolescencia</h2>
+      <p>Avanza por las 30 casillas aplicando los contenidos del manual de clase de los tres parciales.</p>
+    </div>
+
+    <div class="leyenda-parciales">
+      <span class="etiqueta-p ep1">🔵 Primer Parcial (Casillas 1–8)</span>
+      <span class="etiqueta-p ep2">🩷 Segundo Parcial (Casillas 9–20)</span>
+      <span class="etiqueta-p ep3">🟡 Tercer Parcial (Casillas 21–30)</span>
+    </div>
+
+    <div class="ruta-tablero" id="rutaTablero"></div>
+  </div>
+
+  <div class="pie-equipo">
+    <strong>Integrantes del equipo:</strong> Aguirre Hidalgo Héctor David, Bautista Rodríguez Azul Amairani, Miguel Ramírez Carlos, Oceguera Cruz Avril Anahí, Pérez Arellano Casandra, Ledesma Reyes Luis Fernando, Martínez Serrano Diego Enrique y Ruíz Leal Roberto.
+  </div>
+</div>
+
+<!-- Modal de Reto -->
+<div class="modal-fondo" id="modalReto">
+  <div class="modal-caja">
+    <div class="modal-top">
+      <div>
+        <div id="mSub" style="font-size:0.8rem;font-weight:700;color:#2563eb;"></div>
+        <h3 id="mTit"></h3>
+      </div>
+      <button class="btn-gris" onclick="cerrar('modalReto')">✕</button>
+    </div>
+    <div class="nota-manual" id="mNota"></div>
+    <div class="texto-reto" id="mPreg"></div>
+    <div class="lista-opciones" id="mOpc"></div>
+    <div class="caja-retro" id="mRetro"></div>
+  </div>
+</div>
+
+<!-- Modal Informativo -->
+<div class="modal-fondo" id="modalInfo">
+  <div class="modal-caja">
+    <div class="modal-top">
+      <h3 id="iTit"></h3>
+      <button class="btn-gris" onclick="cerrar('modalInfo')">✕</button>
+    </div>
+    <div id="iTexto"></div>
+  </div>
+</div>
+
+<script>
+  const CASILLAS = [
+    // PRIMER PARCIAL (1-8)
+    {
+      num: 1, parcial: "Primer Parcial", clase: "p1", icono: "🧠",
+      tema: "Pensamiento (Manual, pág. 38)",
+      nota: "Pensar es formar o combinar ideas o juicios en la mente y examinar mentalmente algo con atención (RAE, 2022, pág. 38).",
+      pregunta: "Ante la presión social en una fiesta, tus compañeros te insisten en hacer algo peligroso. ¿Qué haces si aplicas el pensamiento?",
+      opciones: [
+        "Examinas mentalmente la situación con atención para formar un juicio propio antes de actuar.",
+        "Obedeces al grupo de inmediato sin analizar nada.",
+        "Actúas por impulso sin pensar."
+      ],
+      correcta: 0,
+      retro: "Correcto. Según el manual (pág. 38), pensar es examinar mentalmente algo con atención para formar un juicio."
+    },
+    {
+      num: 2, parcial: "Primer Parcial", clase: "p1", icono: "💬",
+      tema: "Elementos del Pensamiento (Manual, págs. 43-45)",
+      nota: "Los elementos son: imagen, concepto (agrupa experiencias) y lenguaje (sistema flexible de símbolos) (Morris & Maisto, 2005, págs. 43-45).",
+      pregunta: "Identificas una invitación riesgosa como 'peligro' y dices 'no' con claridad. ¿Qué dos elementos del pensamiento usaste?",
+      opciones: [
+        "Concepto para agrupar la experiencia y Lenguaje para comunicar tu decisión.",
+        "Solo una imagen olfativa.",
+        "Ningún elemento del pensamiento."
+      ],
+      correcta: 0,
+      retro: "Correcto. Los conceptos agrupan experiencias y el lenguaje permite comunicar soluciones frente a un problema (págs. 44-45)."
+    },
+    {
+      num: 3, parcial: "Primer Parcial", clase: "p1", icono: "⚖️",
+      tema: "Hemisferios y Cuerpo Calloso (Manual, págs. 16-19)",
+      nota: "El hemisferio izquierdo es lógico y analítico; el derecho es intuitivo y creativo; el cuerpo calloso los une (págs. 16-19).",
+      pregunta: "Analizas los hechos reales con el hemisferio izquierdo e imaginas salidas con el derecho para evitar la presión social. ¿Qué estructura los une?",
+      opciones: [
+        "El cuerpo calloso.",
+        "La médula espinal.",
+        "El bulbo raquídeo."
+      ],
+      correcta: 0,
+      retro: "Correcto. El cuerpo calloso comunica el lado izquierdo y derecho del cerebro para trabajar en conjunto (págs. 17 y 19)."
+    },
+    {
+      num: 4, parcial: "Primer Parcial", clase: "p1", icono: "🎯",
+      tema: "Lóbulos Cerebrales (Manual, págs. 20-21)",
+      nota: "El lóbulo frontal (delante de la cisura de Rolando) controla funciones ejecutivas: razonamiento, toma de decisiones y autocontrol (págs. 20-21).",
+      pregunta: "Cuando un grupo se burla de ti por no seguir una moda riesgosa, mantienes el autocontrol y decides irte. ¿Qué lóbulo dirige esa acción?",
+      opciones: [
+        "Lóbulo frontal.",
+        "Lóbulo occipital.",
+        "Lóbulo temporal."
+      ],
+      correcta: 0,
+      retro: "Correcto. El lóbulo frontal rige las funciones ejecutivas: razonamiento, toma de decisiones y autocontrol (pág. 21)."
+    },
+    {
+      num: 5, parcial: "Primer Parcial", clase: "p1", icono: "🛡️",
+      tema: "Cerebro Triuno (Manual, págs. 25 y 33)",
+      nota: "Paul MacLean divide al cerebro en réptil (instintos), límbico (emociones) y neocorteza (razonamiento lógico y control conductual) (págs. 25 y 33).",
+      pregunta: "Si sientes miedo al rechazo (sistema límbico), ¿qué estructura del cerebro triuno te permite reflexionar y controlar tu conducta?",
+      opciones: [
+        "La neocorteza o neocórtex.",
+        "El cerebro réptil.",
+        "El cerebelo."
+      ],
+      correcta: 0,
+      retro: "Correcto. La neocorteza permite observación, reflexión, razonamiento lógico y control conductual (pág. 33)."
+    },
+    {
+      num: 6, parcial: "Primer Parcial", clase: "p1", icono: "🔍",
+      tema: "Pensamiento Analítico (Manual, págs. 46-47)",
+      nota: "Estudia un problema en tres fases: fase analítica (dividir en partes), fase secuencial (orden lineal) y fase resolutiva (solución) (pág. 47).",
+      pregunta: "Para entender la presión social en tu salón, divides el problema en partes, las revisas en orden y propones una solución. ¿Qué fases usaste?",
+      opciones: [
+        "Fase analítica, fase secuencial y fase resolutiva.",
+        "Solo impulso emocional.",
+        "Adivinación."
+      ],
+      correcta: 0,
+      retro: "Correcto. El pensamiento analítico sigue las fases analítica, secuencial y resolutiva basadas en evidencias (pág. 47)."
+    },
+    {
+      num: 7, parcial: "Primer Parcial", clase: "p1", icono: "🧐",
+      tema: "Pensamiento Crítico (Manual, págs. 50-51)",
+      nota: "Involucra analizar, razonar, cuestionar, evaluar, posicionarse y comprometerse, sin creer afirmaciones sin sustento (Bezanilla et al., 2018, págs. 50-51).",
+      pregunta: "Ves un reto viral peligroso en internet que tus amigos quieren hacer. ¿Cómo actúa el pensamiento crítico?",
+      opciones: [
+        "Cuestiona el reto y evalúa sus consecuencias antes de tomar una decisión.",
+        "Lo repite porque todos lo hacen.",
+        "Cree todo lo que aparece en redes sociales."
+      ],
+      correcta: 0,
+      retro: "Correcto. El pensamiento crítico cuestiona lo comúnmente aceptado y evalúa los hechos con criterio (págs. 50-51)."
+    },
+    {
+      num: 8, parcial: "Primer Parcial", clase: "p1", icono: "📊",
+      tema: "Pensamiento Deductivo e Inductivo (Manual, págs. 53-55)",
+      nota: "El deductivo va de lo general a lo específico; el inductivo parte de casos particulares para llegar a una generalización (págs. 53-54).",
+      pregunta: "Observas que tres compañeros reprobaron tras ceder a la presión social y concluyes que la presión social afecta el estudio. ¿Qué pensamiento es?",
+      opciones: [
+        "Pensamiento inductivo (de casos particulares a una generalización).",
+        "Pensamiento deductivo.",
+        "Pensamiento vertical."
+      ],
+      correcta: 0,
+      retro: "Correcto. El pensamiento inductivo va de la observación de casos particulares a una generalización probable (págs. 54-55)."
+    },
+
+    // SEGUNDO PARCIAL (9-20)
+    {
+      num: 9, parcial: "Segundo Parcial", clase: "p2", icono: "💻",
+      tema: "Acto Mental: Input-Process-Output (Manual, págs. 69-70)",
+      nota: "Consta de 3 fases: entrada o Input (recibir datos), elaboración o Process (procesar con memoria y reglas) y salida o Output (respuesta) (pág. 69).",
+      pregunta: "Escuchas una propuesta riesgosa (Input), la analizas con lo que sabes (Process) y respondes 'no' (Output). ¿Qué pasa si falla la fase de elaboración?",
+      opciones: [
+        "Es muy probable que falle la respuesta en la fase de salida (Output).",
+        "Siempre se logra el objetivo.",
+        "No importa cómo se procesen los datos."
+      ],
+      correcta: 0,
+      retro: "Correcto. Si hay fallas en la fase de entrada o elaboración, lo más probable es que haya fallas en la fase de salida (pág. 70)."
+    },
+    {
+      num: 10, parcial: "Segundo Parcial", clase: "p2", icono: "👂",
+      tema: "Sensación (Manual, pág. 78)",
+      nota: "Las sensaciones son datos inmediatos provocados por estímulos del entorno o del cuerpo que llegan por los sentidos (pág. 78).",
+      pregunta: "En una discusión grupal tensa, escuchas voces altas y sientes que tu corazón late rápido. ¿Qué proceso básico capta esos datos inmediatos?",
+      opciones: [
+        "La sensación.",
+        "La clasificación.",
+        "La metacognición."
+      ],
+      correcta: 0,
+      retro: "Correcto. La sensación recoge los datos inmediatos del ambiente o del propio cuerpo por medio de los sentidos (pág. 78)."
+    },
+    {
+      num: 11, parcial: "Segundo Parcial", clase: "p2", icono: "👁️",
+      tema: "Percepción (Manual, pág. 78)",
+      nota: "La percepción interpreta los estímulos percibidos dándoles significado gracias a nuestras experiencias previas (pág. 78).",
+      pregunta: "Dos adolescentes leen la misma invitación a una fiesta riesgosa: uno la ve como diversión y otro como peligro por una experiencia pasada. ¿Qué proceso es?",
+      opciones: [
+        "La percepción.",
+        "La sensación pura.",
+        "El reflejo."
+      ],
+      correcta: 0,
+      retro: "Correcto. La percepción implica interpretar los estímulos otorgándoles significado con base en experiencias previas (pág. 78)."
+    },
+    {
+      num: 12, parcial: "Segundo Parcial", clase: "p2", icono: "🔦",
+      tema: "Atención (Manual, págs. 80 y 90)",
+      nota: "Permite focalizar nuestros recursos cognitivos en estímulos relevantes y reaccionar ante posibles amenazas (págs. 80 y 90).",
+      pregunta: "Cuando explicas tu postura frente al grupo, te concentras en tus palabras y lenguaje corporal ignorando el ruido. ¿Qué proceso aplicas?",
+      opciones: [
+        "La atención.",
+        "El bloqueo perceptual.",
+        "La distorsión cognitiva."
+      ],
+      correcta: 0,
+      retro: "Correcto. La atención permite dirigir y sostener nuestros recursos cognitivos hacia lo que interesa en ese momento (pág. 80)."
+    },
+    {
+      num: 13, parcial: "Segundo Parcial", clase: "p2", icono: "🗂️",
+      tema: "Memoria (Manual, págs. 82 y 95-96)",
+      nota: "Permite codificar, almacenar y recuperar datos; incluye memoria sensorial, a corto plazo, de trabajo y a largo plazo (págs. 82 y 95).",
+      pregunta: "Durante una plática sobre presión social, retienes en mente lo que acaban de decir para responder al instante. ¿Qué memoria usas?",
+      opciones: [
+        "Memoria de trabajo.",
+        "Memoria sensorial.",
+        "Memoria motora."
+      ],
+      correcta: 0,
+      retro: "Correcto. La memoria de trabajo retiene y manipula información en el momento para razonar y responder (págs. 95-96)."
+    },
+    {
+      num: 14, parcial: "Segundo Parcial", clase: "p2", icono: "❤️",
+      tema: "Inteligencia Emocional (Manual, pág. 84)",
+      nota: "Gardner propone inteligencias múltiples y se destaca la inteligencia emocional para manejar las situaciones del día a día (pág. 84).",
+      pregunta: "Un alumno reconoce sus emociones y mantiene la calma cuando intentan excluirlo del grupo. ¿Qué inteligencia aplica?",
+      opciones: [
+        "Inteligencia emocional e intrapersonal.",
+        "Solo cálculo numérico.",
+        "Ningún tipo de inteligencia."
+      ],
+      correcta: 0,
+      retro: "Correcto. La inteligencia emocional es esencial para manejar las coyunturas que se presentan en el día a día (pág. 84)."
+    },
+    {
+      num: 15, parcial: "Segundo Parcial", clase: "p2", icono: "⚠️",
+      tema: "Sesgos y Distorsiones Cognitivas (Manual, pág. 88)",
+      nota: "Los sesgos son atajos mentales; las distorsiones cognitivas son pensamientos negativos e irracionales como 'todo el mundo me odia' (pág. 88).",
+      pregunta: "Si piensas: 'Si digo que no a mis amigos, todo el mundo me va a odiar para siempre', ¿qué ocurre en tu mente?",
+      opciones: [
+        "Una distorsión cognitiva (pensamiento negativo e irracional).",
+        "Un argumento deductivo verdadero.",
+        "Una sensación visual."
+      ],
+      correcta: 0,
+      retro: "Correcto. Las distorsiones cognitivas son pensamientos negativos e irracionales que nosotros mismos podemos detener (pág. 88)."
+    },
+    {
+      num: 16, parcial: "Segundo Parcial", clase: "p2", icono: "🗣️",
+      tema: "Lenguaje (Manual, págs. 45, 89 y 97)",
+      nota: "El lenguaje es un sistema flexible de signos que media el pensamiento y la conducta y permite comunicar ideas con precisión (págs. 45 y 97).",
+      pregunta: "¿Por qué expresar con precisión lo que piensas ayuda a prevenir la presión social?",
+      opciones: [
+        "Porque el lenguaje media el pensamiento y la conducta, permitiendo comunicar posturas claras.",
+        "Porque el lenguaje no influye en la conducta.",
+        "Porque evita tener que pensar."
+      ],
+      correcta: 0,
+      retro: "Correcto. El lenguaje media el pensamiento y la conducta y permite expresar con precisión lo que deseamos comunicar (págs. 89 y 97)."
+    },
+    {
+      num: 17, parcial: "Segundo Parcial", clase: "p2", icono: "⚖️",
+      tema: "Comparación (Manual, pág. 93)",
+      nota: "La comparación establece relaciones de semejanza o diferencia entre características respecto a una misma variable (pág. 93).",
+      pregunta: "Observas dos grupos de amigos y revisas sus semejanzas y diferencias respecto a la variable 'respeto a tus decisiones'. ¿Qué habilidad usas?",
+      opciones: [
+        "Comparación.",
+        "Inhibición.",
+        "Sensación."
+      ],
+      correcta: 0,
+      retro: "Correcto. La comparación identifica semejanzas o diferencias entre características correspondientes a una misma variable (pág. 93)."
+    },
+    {
+      num: 18, parcial: "Segundo Parcial", clase: "p2", icono: "🧩",
+      tema: "Clasificación (Manual, págs. 93-94)",
+      nota: "Agrupar elementos de acuerdo con sus semejanzas y diferencias en categorías denominadas clases (págs. 93-94).",
+      pregunta: "Separas las conductas de tu entorno en dos grupos: 'Acciones de autocuidado' y 'Acciones de riesgo'. ¿Qué operación realizaste?",
+      opciones: [
+        "Clasificación.",
+        "Percepción auditiva.",
+        "Bloqueo físico."
+      ],
+      correcta: 0,
+      retro: "Correcto. La clasificación agrupa conjuntos de elementos en categorías denominadas clases (pág. 94)."
+    },
+    {
+      num: 19, parcial: "Segundo Parcial", clase: "p2", icono: "🔄",
+      tema: "Flexibilidad Cognitiva (Manual, pág. 91)",
+      nota: "Permite adaptarse a nuevas condiciones, modificar esquemas mentales y entender diferentes perspectivas (pág. 91).",
+      pregunta: "Cambias tus hábitos para alejarte de malas influencias y te adaptas a nuevas formas sanas de convivir. ¿Qué habilidad aplicas?",
+      opciones: [
+        "Flexibilidad cognitiva.",
+        "Rigidez mental.",
+        "Hábito repetitivo."
+      ],
+      correcta: 0,
+      retro: "Correcto. La flexibilidad cognitiva permite adaptarse a nuevas condiciones y modificar esquemas según la experiencia (pág. 91)."
+    },
+    {
+      num: 20, parcial: "Segundo Parcial", clase: "p2", icono: "🪞",
+      tema: "Metacognición (Manual, pág. 93)",
+      nota: "La metacognición es valorar y pensar sobre la propia cognición para detectar qué información nos falta y mejorar (pág. 93).",
+      pregunta: "Después de vivir una situación de presión social, reflexionas sobre cómo pensaste y qué debes mejorar. ¿Qué habilidad es?",
+      opciones: [
+        "Metacognición.",
+        "Memoria sensorial.",
+        "Pensamiento automático."
+      ],
+      correcta: 0,
+      retro: "Correcto. La metacognición permite analizar nuestras capacidades y conocimientos para optimizarlos (pág. 93)."
+    },
+
+    // TERCER PARCIAL (21-30)
+    {
+      num: 21, parcial: "Tercer Parcial", clase: "p3", icono: "💡",
+      tema: "Creatividad (Manual, págs. 105 y 107)",
+      nota: "Capacidad de producir cosas nuevas y valiosas para resolver problemas de forma original; requiere idea nueva, resolver problema y mantenerla (págs. 105 y 107).",
+      pregunta: "Diseñas una dinámica original en tu grupo para prevenir la presión social, funciona y se mantiene todo el parcial. ¿Por qué es creativa?",
+      opciones: [
+        "Porque produce una idea nueva, resuelve un problema real y se desarrolla en el tiempo.",
+        "Porque copia exactamente una actividad anterior.",
+        "Porque no resuelve ningún problema."
+      ],
+      correcta: 0,
+      retro: "Correcto. La creatividad se caracteriza por originalidad, adaptación y realización para resolver problemas (pág. 107)."
+    },
+    {
+      num: 22, parcial: "Tercer Parcial", clase: "p3", icono: "⚡",
+      tema: "Factores de Guilford (Manual, págs. 111-113)",
+      nota: "Guilford (1977) mide la creatividad con 4 factores: fluidez, flexibilidad, originalidad y elaboración (págs. 111-113).",
+      pregunta: "Para salir de una situación incómoda de presión grupal, propones 10 ideas distintas en dos minutos. ¿Qué factor de Guilford destacas?",
+      opciones: [
+        "Fluidez (cantidad rápida de ideas).",
+        "Bloqueo emocional.",
+        "Pensamiento vertical."
+      ],
+      correcta: 0,
+      retro: "Correcto. La fluidez es la habilidad de emitir de forma rápida muchas ideas o soluciones en un tiempo determinado (pág. 111)."
+    },
+    {
+      num: 23, parcial: "Tercer Parcial", clase: "p3", icono: "🔀",
+      tema: "Pensamiento Divergente o Lateral (Manual, pág. 1)",
+      nota: "El pensamiento lateral o divergente (De Bono / Guilford) explora todos los caminos, reestructura ideas y abre nuevas posibilidades (pág. 1).",
+      pregunta: "Si piensas que ante la presión social solo hay dos salidas ('obedecer o quedarte solo'), ¿qué pensamiento abre nuevas opciones?",
+      opciones: [
+        "Pensamiento divergente o lateral.",
+        "Pensamiento vertical rígido.",
+        "Conducta automatizada."
+      ],
+      correcta: 0,
+      retro: "Correcto. El pensamiento lateral no selecciona un solo camino, sino que busca nuevos derroteros y posibilidades (pág. 1)."
+    },
+    {
+      num: 24, parcial: "Tercer Parcial", clase: "p3", icono: "⚙️",
+      tema: "Etapas del Proceso Creativo (Manual, págs. 116-117)",
+      nota: "4 etapas con ambos hemisferios: 1. Detección del problema, 2. Análisis de alternativas, 3. Ejecución de la acción y 4. Consolidación de la experiencia (págs. 116-117).",
+      pregunta: "Tras resolver con ingenio un problema de presión social, evalúas cómo te fue y guardas ese aprendizaje para el futuro. ¿Qué etapa es?",
+      opciones: [
+        "Cuarta etapa: consolidación de la experiencia.",
+        "Primera etapa: detección del problema.",
+        "Bloqueo cultural."
+      ],
+      correcta: 0,
+      retro: "Correcto. En la cuarta etapa ambos hemisferios evalúan el resultado y consolidan la experiencia para el futuro (pág. 117)."
+    },
+    {
+      num: 25, parcial: "Tercer Parcial", clase: "p3", icono: "🧱",
+      tema: "Bloqueadores de la Creatividad (Manual, págs. 122-125)",
+      nota: "Existen bloqueos cognoscitivos, emocionales (miedo, inseguridad, baja autoestima), físicos, culturales y perceptuales, más la zona de confort (págs. 122-125).",
+      pregunta: "Un joven no propone actividades sanas a su grupo por miedo al qué dirán y baja autoestima. ¿Qué bloqueo frena su acción?",
+      opciones: [
+        "Bloqueo emocional.",
+        "Bloqueo físico.",
+        "Exceso de fluidez."
+      ],
+      correcta: 0,
+      retro: "Correcto. Los bloqueos emocionales se expresan con miedo, inseguridad y baja autoestima (pág. 124)."
+    },
+    {
+      num: 26, parcial: "Tercer Parcial", clase: "p3", icono: "🚀",
+      tema: "Vencer Bloqueos (Manual, pág. 125)",
+      nota: "Para vencer bloqueos: suspender temporalmente el juicio, salir de la zona de confort y trabajar sin esperar a la suerte (pág. 125).",
+      pregunta: "Según los tips del manual (pág. 125), ¿qué debes hacer para superar los bloqueos ante la presión social?",
+      opciones: [
+        "Suspender el juicio, salir de la zona de confort y buscar nuevas posibilidades.",
+        "Esperar a que la suerte lo resuelva.",
+        "Seguir haciendo siempre lo mismo."
+      ],
+      correcta: 0,
+      retro: "Correcto. Vencer bloqueos requiere suspender el juicio, salir de la zona de confort y actuar sin esperar a la suerte (pág. 125)."
+    },
+    {
+      num: 27, parcial: "Tercer Parcial", clase: "p3", icono: "⏱️",
+      tema: "Sistema 1 y Sistema 2 (Manual, págs. 41-43)",
+      nota: "Kahneman distingue el Sistema 1 (rápido, automático, emocional) y el Sistema 2 (pausado, consciente, racional y con esfuerzo) (págs. 41-42).",
+      pregunta: "En el problema del manual (labial + crema = $110), el Sistema 1 responde rápido sin calcular, pero el Sistema 2 analiza con calma. ¿Cómo activas el Sistema 2?",
+      opciones: [
+        "Deteniéndote y usando lápiz y papel para analizar con calma toda la información.",
+        "Respondiendo en un segundo por emoción.",
+        "Imitando al grupo."
+      ],
+      correcta: 0,
+      retro: "Correcto. Para activar el Sistema 2 se recomienda analizar la información disponible de manera pausada y visual (pág. 43)."
+    },
+    {
+      num: 28, parcial: "Tercer Parcial", clase: "p3", icono: "📐",
+      tema: "Expansión y Contracción de Ideas (Manual, págs. 137-138)",
+      nota: "La expansión considera extremos, variables, alternativas y consecuencias; la contracción estipula reglas, objetivos, prioridades y decisión (págs. 137-138).",
+      pregunta: "Antes de decidir, revisas ventajas, desventajas y consecuencias; luego defines tus prioridades y eliges un plan. ¿Qué proceso usaste?",
+      opciones: [
+        "Expansión y contracción de ideas.",
+        "Evitación del problema.",
+        "Impulso automático."
+      ],
+      correcta: 0,
+      retro: "Correcto. La expansión amplía las opciones y consecuencias, mientras la contracción prioriza y concreta la decisión (págs. 137-138)."
+    },
+    {
+      num: 29, parcial: "Tercer Parcial", clase: "p3", icono: "🎩",
+      tema: "Seis Sombreros para Pensar (Manual, págs. 139-141)",
+      nota: "De Bono propone 6 sombreros: Blanco (hechos), Rojo (emociones), Negro (riesgos), Amarillo (beneficios), Verde (creatividad) y Azul (control y síntesis) (págs. 140-141).",
+      pregunta: "Al evaluar una decisión, revisas los riesgos (Sombrero Negro) y los beneficios (Sombrero Amarillo). ¿Qué sombrero organiza todo y da la conclusión?",
+      opciones: [
+        "Sombrero Azul.",
+        "Sombrero Rojo.",
+        "Sombrero Blanco."
+      ],
+      correcta: 0,
+      retro: "Correcto. El Sombrero Azul se ocupa del control, la organización del proceso y da las conclusiones (pág. 141)."
+    },
+    {
+      num: 30, parcial: "Tercer Parcial", clase: "p3", icono: "🏆",
+      tema: "Proceso de Toma de Decisiones (Manual, pág. 137)",
+      nota: "7 pasos: 1. Identifica el problema, 2. Recopila información, 3. Desarrolla alternativas, 4. Evalúa opciones, 5. Elige la mejor opción, 6. Llévala a cabo, 7. Revisa el impacto (pág. 137).",
+      pregunta: "Ya elegiste la mejor opción (paso 5) y la llevaste a cabo (paso 6) frente a la presión social. ¿Cuál es el paso 7 para llegar a la Meta?",
+      opciones: [
+        "Revisar el impacto de tu decisión.",
+        "Olvidar lo que pasó.",
+        "No evaluar los resultados."
+      ],
+      correcta: 0,
+      retro: "¡Llegaste a la Meta! El paso 7 del proceso de toma de decisiones es revisar el impacto para comprobar los resultados (pág. 137)."
+    }
+  ];
+
+  let posActual = 0;
+  let puntos = 0;
+  const resueltas = new Set();
+
+  function renderizar() {
+    const ruta = document.getElementById("rutaTablero");
+    ruta.innerHTML = "";
+
+    // INICIO
+    const cInicio = document.createElement("div");
+    cInicio.className = "ficha-casilla casilla-extremo" + (posActual === 0 ? " actual" : "");
+    cInicio.innerHTML = `
+      <div class="cabecera-ficha">🚩 INICIO</div>
+      <div class="nombre-tema">Punto de Partida</div>
+      ${posActual === 0 ? '<div class="peon">♟️</div>' : ''}
+    `;
+    ruta.appendChild(cInicio);
+
+    // 30 CASILLAS
+    CASILLAS.forEach(c => {
+      const div = document.createElement("div");
+      div.className = `ficha-casilla ${c.clase}` + (posActual === c.num ? " actual" : "");
+      div.onclick = () => abrirCasilla(c.num);
+      div.innerHTML = `
+        ${resueltas.has(c.num) ? '<span class="marca-ok">✓</span>' : ''}
+        <div>
+          <div class="cabecera-ficha">${c.icono} #${c.num}</div>
+          <div class="sub-parcial">${c.parcial}</div>
+        </div>
+        <div class="nombre-tema">${c.tema}</div>
+        ${posActual === c.num ? '<div class="peon">♟️</div>' : ''}
+      `;
+      ruta.appendChild(div);
+    });
+
+    // META
+    const cMeta = document.createElement("div");
+    cMeta.className = "ficha-casilla casilla-extremo" + (posActual === 31 ? " actual" : "");
+    cMeta.innerHTML = `
+      <div class="cabecera-ficha">🏆 META</div>
+      <div class="nombre-tema">¡Tablero Completado!</div>
+      ${posActual === 31 ? '<div class="peon">♟️</div>' : ''}
+    `;
+    ruta.appendChild(cMeta);
+
+    document.getElementById("lblPos").textContent = posActual === 0 ? "Inicio" : (posActual > 30 ? "Meta" : "Casilla " + posActual);
+    document.getElementById("lblHechas").textContent = resueltas.size;
+    document.getElementById("lblPuntos").textContent = puntos;
+  }
+
+  function tirarDado() {
+    const dado = Math.floor(Math.random() * 6) + 1;
+    posActual = Math.min(30, posActual + dado);
+    renderizar();
+    abrirCasilla(posActual);
+  }
+
+  function abrirCasilla(num) {
+    posActual = num;
+    renderizar();
+    const c = CASILLAS.find(item => item.num === num);
+    if (!c) return;
+
+    document.getElementById("mSub").textContent = `${c.parcial} · Casilla ${c.num} de 30`;
+    document.getElementById("mTit").textContent = `${c.icono} ${c.tema}`;
+    document.getElementById("mNota").innerHTML = `<strong>Contenido del manual:</strong> ${c.nota}`;
+    document.getElementById("mPreg").textContent = c.pregunta;
+
+    const contOpc = document.getElementById("mOpc");
+    contOpc.innerHTML = "";
+    const retro = document.getElementById("mRetro");
+    retro.className = "caja-retro";
+    retro.innerHTML = "";
+
+    c.opciones.forEach((op, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "btn-opcion";
+      btn.textContent = `${String.fromCharCode(65 + idx)}) ${op}`;
+      btn.onclick = () => comprobar(c, idx, btn);
+      contOpc.appendChild(btn);
+    });
+
+    document.getElementById("modalReto").classList.add("activo");
+  }
+
+  function comprobar(c, elegida, btn) {
+    const todos = document.querySelectorAll("#mOpc .btn-opcion");
+    todos.forEach((b, i) => {
+      b.disabled = true;
+      if (i === c.correcta) b.classList.add("acierto");
+    });
+
+    const retro = document.getElementById("mRetro");
+    if (elegida === c.correcta) {
+      if (!resueltas.has(c.num)) {
+        resueltas.add(c.num);
+        puntos += 10;
+      }
+      retro.className = "caja-retro mostrar bien";
+      retro.innerHTML = `<strong>¡Bien hecho! (+10 puntos)</strong><br>${c.retro}`;
+    } else {
+      btn.classList.add("fallo");
+      retro.className = "caja-retro mostrar mal";
+      retro.innerHTML = `<strong>Intenta de nuevo en otra ronda:</strong><br>${c.retro}`;
+    }
+    renderizar();
+  }
+
+  function verInfo(tipo) {
+    const tit = document.getElementById("iTit");
+    const txt = document.getElementById("iTexto");
+
+    if (tipo === "objetivo") {
+      tit.textContent = "🎯 Objetivo del Tablero";
+      txt.innerHTML = `<p>Aplicar los temas de los tres parciales del manual de <strong>Desarrollo de Habilidades del Pensamiento I</strong> para analizar y resolver situaciones sobre la <strong>Prevención de la Presión Social en la Adolescencia</strong>.</p>`;
+    } else if (tipo === "reglas") {
+      tit.textContent = "📋 Reglas del Juego (3 pasos)";
+      txt.innerHTML = `
+        <ol style="font-size:1rem; line-height:1.7;">
+          <li><strong>Avanza:</strong> Presiona el botón verde <strong>Tirar Dado</strong> para mover tu ficha (♟️) o haz clic directo en cualquier casilla del 1 al 30.</li>
+          <li><strong>Responde:</strong> Lee la nota del manual, analiza la situación y elige la respuesta correcta (A, B o C).</li>
+          <li><strong>Gana:</strong> Cada acierto suma <strong>10 puntos</strong> (máximo 300 puntos). Completa las 30 casillas hasta llegar a la <strong>Meta</strong>.</li>
+        </ol>`;
+    } else {
+      tit.textContent = "👥 Integrantes del Equipo";
+      txt.innerHTML = `
+        <p><strong>CECyT 13 "Ricardo Flores Magón" (IPN) · Primer Semestre</strong></p>
+        <ul>
+          <li>Aguirre Hidalgo Héctor David</li>
+          <li>Bautista Rodríguez Azul Amairani</li>
+          <li>Ledesma Reyes Luis Fernando</li>
+          <li>Martínez Serrano Diego Enrique</li>
+          <li>Miguel Ramírez Carlos</li>
+          <li>Oceguera Cruz Avril Anahí</li>
+          <li>Pérez Arellano Casandra</li>
+          <li>Ruíz Leal Roberto</li>
+        </ul>
+        <p><strong>Material utilizado:</strong> Exclusivamente el manual impreso de Desarrollo de Habilidades del Pensamiento I (págs. 16–144).</p>`;
+    }
+    document.getElementById("modalInfo").classList.add("activo");
+  }
+
+  function cerrar(id) {
+    document.getElementById(id).classList.remove("activo");
+  }
+
+  function reiniciarJuego() {
+    posActual = 0;
+    puntos = 0;
+    resueltas.clear();
+    renderizar();
+  }
+
+  renderizar();
+</script>
+</body>
+</html>
